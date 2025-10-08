@@ -5,9 +5,8 @@ import seaborn as sns
 
 sns.set_style("whitegrid")
 PROFESSIONAL_PALETTE = 'viridis' 
-LINE_COLORS = {'raw': '#2C3E50', 'lag': '#27AE60', 'roll': '#C0392B'} # Dark blue, green, deep red
+LINE_COLORS = {'raw': '#2C3E50', 'lag': '#27AE60', 'roll': '#C0392B'}
 
-# --- 0. Synthetic Data Creation for Demonstration ---
 def create_synthetic_data(file_path):
     """Creates a synthetic retail sales dataset."""
     print("Creating synthetic dataset...")
@@ -17,18 +16,12 @@ def create_synthetic_data(file_path):
     n_stores = 5
     n_products = 3
     start_date = '2023-01-01'
-    
-    # Create a date range
     dates = pd.date_range(start=start_date, periods=n_days, freq='D')
-    
-    # Create combinations of Store and Product IDs
     from itertools import product
     store_ids = [f'S{i+1}' for i in range(n_stores)]
     product_ids = [f'P{i+1}' for i in range(n_products)]
     base_data = list(product(store_ids, product_ids, dates))
     df = pd.DataFrame(base_data, columns=['Store ID', 'Product ID', 'Date'])
-    
-    # Generate Units Sold (with trend and seasonality)
     df['DayOfWeek'] = df['Date'].dt.dayofweek
     df['Units Sold'] = (
         10 +                                        
@@ -37,15 +30,12 @@ def create_synthetic_data(file_path):
         (df.index / (n_stores * n_products * n_days) * 50)  
     ).astype(int)
     
-    # Add Price column
     price_map = {f'P{i+1}': 5 + i * 2 for i in range(n_products)}
     df['Price'] = df['Product ID'].map(price_map) + np.random.uniform(-0.5, 0.5, size=len(df))
     
     df.to_csv(file_path, index=False)
     print(f"Synthetic data saved to: {file_path}")
     return df
-
-# --- 1. Load Data and Initial Cleaning ---
 def initial_cleaning(file_path):
     """Loads the data, converts 'Date' to datetime, and object columns to category."""
     print("\n--- Starting Milestone 1: Data Cleaning and Feature Engineering ---")
@@ -56,24 +46,17 @@ def initial_cleaning(file_path):
         print(f"File not found: {file_path}. Creating synthetic data instead.")
         df = create_synthetic_data(file_path)
     
-    # 1.1 Convert 'Date' to datetime
     df['Date'] = pd.to_datetime(df['Date'])
-
-    # 1.2 Convert object columns to 'category' type for memory efficiency
     object_cols = df.select_dtypes(include='object').columns
     for col in object_cols:
         df[col] = df[col].astype('category')
 
     print("Initial cleaning complete: Date and Categorical columns optimized.")
     return df
-
-# --- 2. Feature Engineering: Calendar, Time-Series, and Price Features ---
 def feature_engineering(df):
     """Creates time-based, time-series, and price-related features."""
     
     df = df.sort_values(by=['Store ID', 'Product ID', 'Date']).reset_index(drop=True)
-
-    # --- 2.1 Calendar Features ---
     df['Year'] = df['Date'].dt.year
     df['Month'] = df['Date'].dt.month
     df['DayOfMonth'] = df['Date'].dt.day
@@ -82,7 +65,6 @@ def feature_engineering(df):
     df['IsWeekend'] = (df['DayOfWeek'] >= 5).astype(int)
     print("Calendar features (Year, Month, DayOfWeek, etc.) created.")
 
-    # --- 2.2 Lag and Rolling Mean Features (Hierarchical) ---
     TARGET = 'Units Sold'
     GROUP_KEYS = ['Store ID', 'Product ID']
     LAG_DAYS = [1, 7]
@@ -100,7 +82,6 @@ def feature_engineering(df):
             .shift(1)
         )
 
-    # --- 2.3 Price-Related Features ---
     df['Price_Lag_1'] = df.groupby(GROUP_KEYS)['Price'].shift(1)
     df['Price_Lag_7'] = df.groupby(GROUP_KEYS)['Price'].shift(7)
     df['Price_Change_7Day'] = (df['Price'] - df['Price_Lag_7']) / df['Price_Lag_7'].replace(0, np.nan)
@@ -108,8 +89,6 @@ def feature_engineering(df):
 
     print("Time-series and Price-related features created.")
     return df
-
-# --- 3. Missing Value Handling ---
 def handle_missing_values(df):
     """Handles NaNs primarily introduced by Lag and Rolling Mean features."""
     print("\n--- Starting Missing Value Handling ---")
@@ -134,7 +113,6 @@ def handle_missing_values(df):
     print(f"Final dataset shape after handling NaNs: {df.shape}")
     return df
 
-# --- 4. Visualization and Verification (Professional Grayscale) ---
 def visualize_features(df):
     """Generates comparison graphs one at a time for professional review."""
     print("\n--- Starting Visualization and Verification (6 Graphs, One at a Time) ---")
@@ -142,9 +120,6 @@ def visualize_features(df):
     sample_group = df.groupby(['Store ID', 'Product ID']).first().index[0]
     sample_df = df[(df['Store ID'] == sample_group[0]) & (df['Product ID'] == sample_group[1])].copy()
     
-    # --------------------------------------------------------------------------
-    # 1. Time Series Comparison: Raw Sales vs. Lag/Rolling Mean
-    # --------------------------------------------------------------------------
     plt.figure(figsize=(14, 6))
     plt.plot(sample_df['Date'], sample_df['Units Sold'], label='Units Sold (Raw)', color=LINE_COLORS['raw'], linewidth=2)
     plt.plot(sample_df['Date'], sample_df['Units Sold_Lag_7'], label='Units Sold Lag 7', color=LINE_COLORS['lag'], linestyle='--')
@@ -155,20 +130,13 @@ def visualize_features(df):
     plt.legend()
     plt.show()
 
-    # --------------------------------------------------------------------------
-    # 2. Calendar Feature Comparison: Day of Week Seasonality
-    # --------------------------------------------------------------------------
     plt.figure(figsize=(10, 6))
-    # Using a grayscale colormap (cmap)
     sns.boxplot(x='DayOfWeek', y='Units Sold', data=df, palette='viridis')
     plt.title('2. Units Sold by Day of Week (0=Mon, 6=Sun) - Intra-Week Seasonality')
     plt.xlabel('Day of Week')
     plt.ylabel('Units Sold')
     plt.show()
 
-    # --------------------------------------------------------------------------
-    # 3. Month-over-Month Sales Comparison
-    # --------------------------------------------------------------------------
     plt.figure(figsize=(12, 6))
     sns.boxplot(x='Month', y='Units Sold', data=df, palette='plasma')
     plt.title('3. Units Sold by Month - Inter-Year Seasonality')
@@ -176,12 +144,8 @@ def visualize_features(df):
     plt.ylabel('Units Sold')
     plt.show()
     
-    # --------------------------------------------------------------------------
-    # 4. Lag Feature Verification: Scatter Plot of Lag 7 vs. Target
-    # --------------------------------------------------------------------------
     temp_df = df.dropna(subset=['Units Sold_Lag_7'])
     plt.figure(figsize=(8, 8))
-    # Use muted scatter points with clear linear reference
     sns.scatterplot(x='Units Sold_Lag_7', y='Units Sold', data=temp_df, alpha=0.1, color=LINE_COLORS['raw'])
     
     max_sales = temp_df[['Units Sold', 'Units Sold_Lag_7']].max().max()
@@ -193,9 +157,6 @@ def visualize_features(df):
     plt.legend()
     plt.show()
 
-    # --------------------------------------------------------------------------
-    # 5. Distribution Check
-    # --------------------------------------------------------------------------
     plt.figure(figsize=(10, 6))
     # Use the raw color for the histogram
     sns.histplot(df['Units Sold'], kde=True, bins=30, color=LINE_COLORS['raw'])
@@ -204,9 +165,6 @@ def visualize_features(df):
     plt.ylabel('Frequency')
     plt.show()
     
-    # --------------------------------------------------------------------------
-    # 6. Price Change Feature Verification (Box Plot)
-    # --------------------------------------------------------------------------
     df['Price_Change_Bins'] = pd.cut(df['Price_Change_7Day'], bins=5, labels=False, include_lowest=True)
     plt.figure(figsize=(10, 6))
     sns.boxplot(x='Price_Change_Bins', y='Units Sold', data=df, palette='gray')
@@ -217,24 +175,18 @@ def visualize_features(df):
     
     print("Visualization complete. Please close all plot windows.")
 
-# --- Main Execution ---
 if __name__ == "__main__":
     FILE_PATH = "retail_store_inventory.csv"
     OUTPUT_FILE = "cleaned_sales_data.csv"
 
-    # Step 1: Cleaning
     df_cleaned = initial_cleaning(FILE_PATH)
 
-    # Step 2: Feature Engineering
     df_engineered = feature_engineering(df_cleaned)
 
-    # Step 3: Missing Value Handling
     df_final = handle_missing_values(df_engineered)
     
-    # Step 4: Visualization (One graph at a time, professional style)
     visualize_features(df_final.copy())
 
-    # Step 5: Save Final Dataset
     df_final.to_csv(OUTPUT_FILE, index=False)
     
     print(f"\nMilestone 1 Complete! Final dataset saved as: {OUTPUT_FILE}")

@@ -1,5 +1,3 @@
-# forecasting_all_products.py - Milestone 2 (Improved for per-product forecasting)
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,9 +11,6 @@ import pickle
 from math import pi
 import warnings
 warnings.filterwarnings("ignore")
-
-
-# ======================= Utility Functions =======================
 
 def mean_absolute_percentage_error(y_true, y_pred):
     """Calculates MAPE safely (avoiding division by zero)."""
@@ -42,9 +37,6 @@ def prepare_data(df_raw, split_date='2023-12-01'):
     test_data = df_agg.iloc[split_index:].copy()
     y_test_true = test_data['Units Sold'].values
     return train_data, test_data, y_test_true
-
-
-# ======================= Forecasting Models =======================
 
 def run_prophet(train_data, test_data):
     """Runs Prophet model and returns metrics + forecast."""
@@ -140,10 +132,6 @@ def create_radar_chart(df_metrics):
     plt.title('Model Performance Comparison (Normalized Error)', size=16)
     plt.legend(loc='lower left', bbox_to_anchor=(1.1, 1))
     plt.tight_layout()
-    plt.savefig('model_comparison_radar_chart_all.png')
-
-
-# ======================= Main Script =======================
 
 if __name__ == "__main__":
     FILE_PATH = "cleaned_sales_data.csv"
@@ -202,4 +190,4 @@ if __name__ == "__main__":
 
     print("\n✅ Per-product Prophet forecasts saved to 'forecast_per_product_prophet.csv'")
     print("✅ Per-product metrics saved to 'metrics_per_product_prophet.csv'")
-    print("✅ Milestone 2 successfully completed 🚀")
+    print("✅ Milestone 2 successfully completed")
