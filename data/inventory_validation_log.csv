@@ -1,7 +1,0 @@
-Metric,Base Value,Unit
-Average Reorder Point (ROP),6352.846153846154,units
-Average Safety Stock (SS),35.0,units
-Service Level Achieved,0.95,""
-Total Holding Cost (Monthly),12000.0,$
-Simulated Average Daily Demand,998.6666666666666,units
-Simulated Monthly Revenue,350000.0,$
